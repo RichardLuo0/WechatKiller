@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">KillWechat</string>
+    <string name="Monitor">WechatMonitor</string>
+    <string name="WechatNotificationMonitor">WechatMonitor</string>
+    <string name="wechatStatus">Wechat is running in foreground : %1$s</string>
+    <string name="pendingKill">Ready to kill : %1$s</string>
+    <string name="update">Update</string>
+    <string name="accessSetting">ACCESSIBILITY SETTINGS</string>
+    <string name="notifySetting">NOTIFICATION LISTENER SETTINGS</string>
+    <string name="timeSetting">Set delay time</string>
+    <string name="timeToast">Set delay time to %1$dms</string>
+</resources>
