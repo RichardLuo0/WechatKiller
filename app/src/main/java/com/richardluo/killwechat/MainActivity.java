@@ -2,12 +2,9 @@ package com.richardluo.killwechat;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.InputType;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -25,18 +22,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         try {
-            Runtime.getRuntime().exec(new String[]{"su"});
+            KillerProcess.getInstance();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         final SharedPreferences preferences = getSharedPreferences("settings", MODE_PRIVATE);
-
-        Intent infoIntent = new Intent(Intent.ACTION_MAIN);
-        infoIntent.addCategory(Intent.CATEGORY_HOME);
-        ResolveInfo res = getPackageManager().resolveActivity(infoIntent, PackageManager.MATCH_DEFAULT_ONLY);
-        if (res != null)
-            preferences.edit().putString("launcher", res.activityInfo.packageName).apply();
 
         LinearLayout line = new LinearLayout(this);
         line.setOrientation(LinearLayout.VERTICAL);
@@ -47,12 +38,7 @@ public class MainActivity extends AppCompatActivity {
 
         Button update = new Button(this);
         update.setText(R.string.update);
-        update.setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                update();
-            }
-        });
+        update.setOnClickListener(v -> update());
 
         final EditText time = new EditText(this);
         time.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
@@ -60,40 +46,31 @@ public class MainActivity extends AppCompatActivity {
 
         Button timeSetting = new Button(this);
         timeSetting.setText(R.string.timeSetting);
-        timeSetting.setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int temp = Integer.parseInt(time.getText().toString());
-                if (temp > 0) {
-                    WechatMonitor.pendingTime = temp;
-                    preferences.edit().putInt("pendingTime", temp).apply();
-                    Toast.makeText(getApplicationContext(), String.format(getResources().getString(R.string.timeToast), temp), Toast.LENGTH_SHORT).show();
-                } else
-                    Toast.makeText(getApplicationContext(), "do not below 0!", Toast.LENGTH_SHORT).show();
-                time.clearFocus();
-            }
+        timeSetting.setOnClickListener(v -> {
+            int temp = Integer.parseInt(time.getText().toString());
+            if (temp > 0) {
+                WechatMonitor.pendingTime = temp;
+                preferences.edit().putInt("pendingTime", temp).apply();
+                Toast.makeText(getApplicationContext(), String.format(getResources().getString(R.string.timeToast), temp), Toast.LENGTH_SHORT).show();
+            } else
+                Toast.makeText(getApplicationContext(), "do not below 0!", Toast.LENGTH_SHORT).show();
+            time.clearFocus();
         });
 
         Button accessSetting = new Button(this);
         accessSetting.setText(R.string.accessSetting);
-        accessSetting.setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-            }
+        accessSetting.setOnClickListener(v -> {
+            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
         });
 
         Button notifySetting = new Button(this);
         notifySetting.setText(R.string.notifySetting);
-        notifySetting.setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-            }
+        notifySetting.setOnClickListener(v -> {
+            Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
         });
 
         line.addView(wechatStatus);
@@ -108,8 +85,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        update();
+    }
+
     void update() {
-        wechatStatus.setText(String.format(getResources().getString(R.string.wechatStatus), WechatMonitor.isWechat ? "Yes" : "No"));
+        wechatStatus.setText(String.format(getResources().getString(R.string.wechatStatus), WechatMonitor.isInApps ? "Yes" : "No"));
         pendingKill.setText(String.format(getResources().getString(R.string.pendingKill), WechatMonitor.isPending ? "Yes" : "No"));
     }
 

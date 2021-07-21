@@ -7,7 +7,7 @@ public class WechatNotificationMonitor extends NotificationListenerService {
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
-        if (!WechatMonitor.isWechat && sbn.getPackageName().equals("com.tencent.mm"))
+        if (!WechatMonitor.isInApps && sbn.getPackageName().equals("com.tencent.mm"))
             WechatMonitor.delayKillWechat();
         super.onNotificationPosted(sbn);
     }

@@ -1,65 +1,62 @@
 package com.richardluo.killwechat;
 
 import android.accessibilityservice.AccessibilityService;
-import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.SharedPreferences;
 import android.view.accessibility.AccessibilityEvent;
 
+import java.util.Arrays;
+
+import static android.view.accessibility.AccessibilityEvent.CONTENT_CHANGE_TYPE_UNDEFINED;
+
 public class WechatMonitor extends AccessibilityService {
     static int pendingTime = 1000 * 60 * 3;
-    String launcher = "com.google.android.apps.nexuslauncher";
-
-    String[] wechat = {"com.tencent.mm"};
-    String[] desktop = {launcher};
-    static boolean isWechat = false;
+    static boolean isInApps = false;
     static boolean isPending = false;
+
+    private final static String[] apps = {"com.tencent.mm", "com.tencent.mobileqq"};
 
     @Override
     protected void onServiceConnected() {
         SharedPreferences preferences = getSharedPreferences("settings", MODE_PRIVATE);
         pendingTime = preferences.getInt("pendingTime", 1000 * 60 * 3);
-        launcher = preferences.getString("launcher", "com.google.android.apps.nexuslauncher");
         super.onServiceConnected();
     }
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        if (event.getPackageName().equals("com.tencent.mm")) {
-            isWechat = true;
-            AccessibilityServiceInfo info = getServiceInfo();
-            info.packageNames = desktop;
-            setServiceInfo(info);
-        } else {
-            isWechat = false;
-            AccessibilityServiceInfo info = getServiceInfo();
-            info.packageNames = wechat;
-            setServiceInfo(info);
-            delayKillWechat();
-        }
+        if (event.getContentChangeTypes() == CONTENT_CHANGE_TYPE_UNDEFINED)
+            if (Arrays.asList(apps).contains(event.getPackageName().toString())) {
+                isInApps = true;
+            } else if (isInApps && event.getPackageName().equals("com.google.android.apps.nexuslauncher")) {
+                isInApps = false;
+                delayKillWechat();
+            }
     }
 
     @Override
     public void onInterrupt() {
-
     }
 
     public static void delayKillWechat() {
-        if (!isPending) {
-            isPending = true;
-            Thread thread = new Thread() {
-                @Override
-                public void run() {
+        synchronized (apps) {
+            if (!isPending) {
+                isPending = true;
+                Thread thread = new Thread(() -> {
                     try {
                         Thread.sleep(pendingTime);
-                        if (!isWechat)
-                            Runtime.getRuntime().exec(new String[]{"su", "-c", "am", "kill", "com.tencent.mm"});
+                        if (!isInApps) {
+                            KillerProcess.getInstance().kill(apps);
+                        }
                     } catch (Exception e) {
                         e.printStackTrace();
+                    } finally {
+                        synchronized (apps) {
+                            isPending = false;
+                        }
                     }
-                    isPending = false;
-                }
-            };
-            thread.start();
+                });
+                thread.start();
+            }
         }
     }
 }
